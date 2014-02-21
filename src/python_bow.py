@@ -11,6 +11,9 @@ document = []
 document_bow = []
 dictionary = {}
 
+document = []
+document_bow = []
+dictionary = {}
 for line in line_array:
     pair_array = line.split()
     document_dic = {}
@@ -28,4 +31,3 @@ for document_dic in document:
     document_bag.append(document_bag_array)
 result = coo_matrix(document_bag).todense()
 print result
-
