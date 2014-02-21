@@ -10,6 +10,7 @@ ins.close()
 document = []
 document_bow = []
 dictionary = {}
+
 for line in line_array:
     pair_array = line.split()
     document_dic = {}
@@ -18,7 +19,6 @@ for line in line_array:
         document_dic[temp_pair[0]] = temp_pair[1]
         dictionary[temp_pair[0]] = temp_pair[0]
     document.append(document_dic)
-
 dictionary_size = len(dictionary)
 document_bag = []
 for document_dic in document:
@@ -26,8 +26,6 @@ for document_dic in document:
     for i in range(dictionary_size):
         document_bag_array[i]=document_dic.get(i,0)
     document_bag.append(document_bag_array)
-
-
-    
-    
+result = coo_matrix(document_bag).todense()
+print result
 
