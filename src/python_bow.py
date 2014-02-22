@@ -34,6 +34,7 @@ for index_out,line in enumerate(line_array):
             if(max_word_code < int(temp_pair[0])) :
                    max_word_code = int(temp_pair[0])
             document.append(document_dic)
+y_temp.pop()
 y = y_temp
 #for document_dic in document:
 #    print document_dic
