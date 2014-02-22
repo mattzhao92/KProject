@@ -18,16 +18,15 @@ max_word_code = 0
 document = []
 dictionary = {}
 y_temp=[]
-for line in line_array:
+for index_out,line in enumerate(line_array):
     pair_array = line.split()
-    
+    y_temp.append([])
     document_dic = {}
     for index,pair in enumerate(pair_array):
-        y_temp.append([])
         if(pair[-1:]==","):
-             y_temp[index].append(pair[:-1])
+             y_temp[index_out].append(int(pair[:-1]))
         elif (pair.find(":") == -1):
-             y_temp[index].append(pair)
+             y_temp[index_out].append(int(pair))
         else:
             temp_pair = pair.split(':')
             document_dic[temp_pair[0]] = temp_pair[1]
@@ -35,7 +34,6 @@ for line in line_array:
             if(max_word_code < int(temp_pair[0])) :
                    max_word_code = int(temp_pair[0])
             document.append(document_dic)
-
 y = y_temp
 #for document_dic in document:
 #    print document_dic
