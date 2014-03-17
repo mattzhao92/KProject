@@ -48,7 +48,7 @@ class TrainingDataLoader:
         #     for doc_index in doc_indexes:
         #         docs = vstack([docs, self.Y_train.getrow(doc_index)])
         # return docs
-       
+
     def translateIndicesToDocs(self, sets_indices):
         matrix = None
         print 'translateIndicesToDocs ', sets_indices
@@ -106,48 +106,55 @@ class Node:
             if self.classifier == None:
                 self.classifier = Pipeline([
                 ('tfidf', TfidfTransformer()),
-                ('clf', OneVsRestClassifier(LinearSVC()))])
+                ('clf', LinearSVC(class_weight='auto'))])
 
                 X_train = []
                 Y_train = []
 
                 print 'number of children',len(self.children)
-                count = 0
+                num_different_labels = 0
                 for child in self.children:
                     indices = child.getTrainingDataIndices()
-                    print 'number of indices ', len(indices),' ', count
-                    count += 1
                     if len(indices) > 0:
-	                    X_train.append(indices)
-	                    Y_train.extend([[child.class_label] for i in range(len(indices))])
+                        num_different_labels += 1
+                        X_train.append(indices)
+                        Y_train.extend([[child.class_label] for i in range(len(indices))])
 
                 #print len(X_train)
-         
+
                 # read in real data
                 self.X_train = self.loader.translateIndicesToDocs(X_train)
-                
-                self.lb = preprocessing.LabelBinarizer()
-                self.Y_train = self.lb.fit_transform(Y_train)
+
+                #self.lb = preprocessing.LabelBinarizer()
+                #self.Y_train = self.lb.fit_transform(Y_train)
+                self.Y_train = Y_train
                 print self.X_train.shape
                 print len(self.Y_train)
                 print 'Y_train', self.Y_train
-                self.classifier.fit(self.X_train, self.Y_train)
+                self.num_different_labels = num_different_labels
+                if self.num_different_labels > 1:
+                    self.classifier.fit(self.X_train, self.Y_train)
 
-            binary_labels = self.classifier.predict(doc)
-            print 'decisionfunc', self.classifier.decision_function(doc)
-            print 'binary_labels', binary_labels
-            predicated_labels = self.lb.inverse_transform(binary_labels)
-            if len(predicated_labels) == 0:
-                raise Exception('No prediction has been made')
+            #binary_labels = self.classifier.predict(doc)
+            #print 'decisionfunc', self.classifier.decision_function(doc)
+            #print 'binary_labels', binary_labels
+            #predicated_labels = self.lb.inverse_transform(binary_labels)
 
-            print 'predicated_labels',predicated_labels
-            next_label = predicated_labels[0][0]
-            print 'next_label ', next_label
-            for child in self.children:
-                if child.class_label == next_label:
-                    return child.classify(doc)
+            if self.num_different_labels == 1:
+                return self.children[0].classify(doc)
+            else:
+                predicated_labels = self.classifier.predict(doc)
+                if len(predicated_labels) == 0:
+                    raise Exception('No prediction has been made')
 
-            raise Exception('No children carries the predicated class label')
+                print 'predicated_labels',predicated_labels
+                next_label = predicated_labels[0]
+                print 'next_label ', next_label
+                for child in self.children:
+                    if child.class_label == next_label:
+                        return child.classify(doc)
+
+                raise Exception('No children carries the predicated class label')
 
 
 
@@ -160,16 +167,16 @@ class ClassificationTree:
 
     def addNode(self,num1,num2):
         if num2 not in self.node_dict :
-            self.node_dict[num2] = Node(num2,self.loader)           
-        
+            self.node_dict[num2] = Node(num2,self.loader)
+
         if num1 not in self.node_dict :
-            self.node_dict[num1] = Node(num1,self.loader)           
-        
+            self.node_dict[num1] = Node(num1,self.loader)
+
         self.node_dict[num1].children.add(self.node_dict[num2])
         self.node_dict[num2].parent = self.node_dict[num1]
-        
 
-    def buildTree(self):     
+
+    def buildTree(self):
         for node in self.node_dict.keys() :
             if self.node_dict[node].parent == None :
                 self.root.children.add(self.node_dict[node])
