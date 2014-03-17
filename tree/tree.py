@@ -1,5 +1,6 @@
 import sys
 import json
+import random
 import numpy as np
 from scipy.sparse import csr_matrix
 from sklearn.svm import LinearSVC
@@ -37,9 +38,9 @@ class TrainingDataLoader:
 
     # returns a sparse matrix, each row represents a document belong to a label
     def getDocIndicesByLabel(self, label):
-    	print 'getDocIndicesByLabel ',label
+    	#print 'getDocIndicesByLabel ',label
         if label in self.labelToDoc:
-        	print 'found something here', len(self.labelToDoc[label])
+        	#print 'found something here', len(self.labelToDoc[label])
         	return set(self.labelToDoc[label])
         return set()
         # docs = csr_matrix()
@@ -51,7 +52,7 @@ class TrainingDataLoader:
 
     def translateIndicesToDocs(self, sets_indices):
         matrix = None
-        print 'translateIndicesToDocs ', sets_indices
+        #print 'translateIndicesToDocs ', sets_indices
         for set_doc_indices in sets_indices:
         	for doc_index in set_doc_indices:
 	        	if matrix == None:
@@ -86,20 +87,18 @@ class Node:
             return max_dep + 1
 
     def getTrainingDataIndices(self):
-        print 'getTrainingDataIndices', self.class_label
+        #print 'getTrainingDataIndices', self.class_label
         if len(self.children) == 0:
             return self.loader.getDocIndicesByLabel(self.class_label)
         else:
             listOfIndices = set()
             for child in self.children:
                 listOfIndices.update(child.getTrainingDataIndices())
-            if len(listOfIndices) > 0:
-            	print 'nonempty !!!!', len(listOfIndices)
             return listOfIndices
 
     # doc is an one-dimensional sparse matrix
     def classify(self, doc):
-        print 'classify is called ', self.class_label
+        #print 'classify is called ', self.class_label
         if len(self.children) == 0:
             return self.class_label
         else:
@@ -111,7 +110,7 @@ class Node:
                 X_train = []
                 Y_train = []
 
-                print 'number of children',len(self.children)
+                #print 'number of children',len(self.children)
                 num_different_labels = 0
                 for child in self.children:
                     indices = child.getTrainingDataIndices()
@@ -124,32 +123,34 @@ class Node:
 
                 # read in real data
                 self.X_train = self.loader.translateIndicesToDocs(X_train)
-
-                #self.lb = preprocessing.LabelBinarizer()
-                #self.Y_train = self.lb.fit_transform(Y_train)
-                self.Y_train = Y_train
-                print self.X_train.shape
-                print len(self.Y_train)
-                print 'Y_train', self.Y_train
-                self.num_different_labels = num_different_labels
-                if self.num_different_labels > 1:
+                
+                if num_different_labels > 1 and self.X_train != None:
+                    self.Y_train = np.array(Y_train)
+                    print self.X_train.shape
+                    print len(self.Y_train)
+                    #print 'Y_train', self.Y_train
+                    self.num_different_labels = num_different_labels
                     self.classifier.fit(self.X_train, self.Y_train)
+                    self.pickRandomChild = False
+                else:
+                    self.pickRandomChild = True
+
 
             #binary_labels = self.classifier.predict(doc)
             #print 'decisionfunc', self.classifier.decision_function(doc)
             #print 'binary_labels', binary_labels
             #predicated_labels = self.lb.inverse_transform(binary_labels)
 
-            if self.num_different_labels == 1:
-                return self.children[0].classify(doc)
+            if self.pickRandomChild:
+                return random.sample(self.children, 1)[0].classify(doc)
             else:
                 predicated_labels = self.classifier.predict(doc)
                 if len(predicated_labels) == 0:
                     raise Exception('No prediction has been made')
 
-                print 'predicated_labels',predicated_labels
+                #print 'predicated_labels',predicated_labels
                 next_label = predicated_labels[0]
-                print 'next_label ', next_label
+                #print 'next_label ', next_label
                 for child in self.children:
                     if child.class_label == next_label:
                         return child.classify(doc)
@@ -279,7 +280,7 @@ tree.buildTree()
 
 # Read in the testing data
 print 'reading test data ... '
-X_test,Y_test = load_svmlight_file("test-fast.csv",n_features=max_number_features, multilabel=True)
+X_test,Y_test = load_svmlight_file("train-fast.csv",n_features=max_number_features, multilabel=True)
 
 # classify
 print 'start classifying ... '
@@ -293,7 +294,7 @@ for i in range(num_rows):
     doc = X_test.getrow(i)
     #sys.stdout.write("\033[F") # Cursor up one line
     print tree.classify(doc)
-    print '%(number)d%(percent)s done' % {"number" : int((i+1) / float(num_rows) * 100), "percent": "%"}
+    #print '%(number)d%(percent)s done' % {"number" : int((i+1) / float(num_rows) * 100), "percent": "%"}
 
 
 # tree.root.data = csr_matrix([[1, 2, 0], [0, 0, 3], [4, 0, 5]])
