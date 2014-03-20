@@ -23,18 +23,14 @@ class TrainingDataLoader:
         X_train,Y_train = load_svmlight_file(train_path,n_features=max_number_features, multilabel=True)
         X_test,Y_test = load_svmlight_file(test_path,n_features=max_number_features, multilabel=True)
         trans = TfidfTransformer()
-        X_test_trans = trans.transform(X_train)
+
+        X_test_trans = trans.fit_transform(X_train)
         X_test_trans_row_num = X_test_trans.shape[0]
         X_test_trans_col_num = X_test_trans.shape[1]
-        
+
         for i in range(X_test_trans_row_num):
-            n_largest = heapq.nlargest(3, X_test_trans.getrow(i) )
-            print X_test_trans.getrow(i)
+            n_largest = heapq.nlargest(3, enumerate(X_test_trans.getrow(i).data))
             print n_largest
-        sys.exit(0)
-
-
-
 
         X_length = X.shape[0];
         Y_length = len(Y)
@@ -149,7 +145,7 @@ class Node:
                 else:
                     self.pickRandomChild = True
 
-             
+
             #binary_labels = self.classifier.predict(doc)
             #print 'decisionfunc', self.classifier.decision_function(doc)
             #print 'binary_labels', binary_labels
@@ -265,7 +261,7 @@ class ClassificationTree:
 
 
 # specify the maximum number of features we consider
-max_number_features = 10
+max_number_features = 2000000
 
 
 # Read in training data
