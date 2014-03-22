@@ -55,6 +55,9 @@ def calculateDistance(doc1, doc2, idf_weights):
 	return 1.0 * (numFeature1 + numFeature2 - 2 * numCommonFeature) / (numFeature1 + numFeature2 - numCommonFeature)
 
 print 'start classification ... '
+outputfile = open('output','w')
+outputfile.write("Id,Predicted\n")
+
 for i in range(X_test.shape[0]):
 	doc_distance_pairs = []
 	test_doc = X_test.getrow(i)
@@ -83,12 +86,18 @@ for i in range(X_test.shape[0]):
 	results = []
 	for i in range(len(n_label_indices)):
 		label_index = n_label_indices[i]
-		labels = [int(label) for label in Y_train[label_index]]
+		labels = [str(int(label)) for label in Y_train[label_index]]
 		results.extend(labels)
 		if len(results) >= 3:
 			break
-	print results
+	#print results
 
+	outputfile.write(str(i+1) +",")
+	if len(results) > 0:
+		outputfile.write(' '.join(results)+"\n")
+	else:
+		outputfile.write("0\n")
+outputfile.close()
 #print 'start preprocessing tranining data ... '
 
 # trans = TfidfTransformer()
