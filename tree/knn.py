@@ -58,7 +58,7 @@ class myThread (threading.Thread):
 		outputfile = open('output'+str(self.threadID),'w')
 
 		for i in self.chunk:
-			print '\r>> Worker[%d] has finished %d iter %d%%' % (self.threadID, i+1, (100.0 * i/len(X_test))),
+			print '\r>> Worker[%d] has finished %d iter %d%%' % (self.threadID, i+1, (100.0 * i/len(self.chunk))),
 			sys.stdout.flush()
 
 			doc_distance_pairs = []
