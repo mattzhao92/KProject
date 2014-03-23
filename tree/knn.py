@@ -13,13 +13,13 @@ from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.svm import LinearSVC
 from scipy.sparse import vstack
 from sklearn import preprocessing
+import threading
 
-max_number_features = 2000000
+
 # Knn classifier benchmark
 
 print 'reading testing data ... '
 X_test= np.loadtxt("X_test_reduced.txt")
-
 
 print 'reading training data ... '
 X_train = np.loadtxt("X_train_reduced.txt")
@@ -29,45 +29,79 @@ train_label_file = open("train-labels.txt", "rw+")
 for labels in train_label_file:
 	Y_train.append(labels.split())
 
+numThreads = 5
+
+def get_chunks(l, n):
+    for i in xrange(0, len(l), n):
+        yield l[i:i+n]
+
 def calculateDistance(doc1, doc2):
 	return spatial.distance.cosine(doc1, doc2)
 
-print 'start classification ... '
-outputfile = open('output','w')
-outputfile.write("Id,Predicted\n")
+def merge():
+	outputfile = open('output','w')
+	for i in range(numThreads):
+		partialResult = open('output'+str(i), 'r')
+		for line in partialResult:
+			outputfile.write(line)
+		partialResult.close()
+	outputfile.close()
 
-for i in range(len(X_test)):
-
-	print '\r>> You have finished %d iter %d%%' % (i+1, (100.0 * i/len(X_test))),
-	sys.stdout.flush()
-
-	doc_distance_pairs = []
-	test_doc = X_test[0]
-	
-	# for each train_doc , calculate its distance to test_doc
-	for j in range(len(X_train)):
-		train_doc = X_train[j]
-		dist = calculateDistance(train_doc, test_doc)
-		doc_distance_pairs.append((j, dist))
+class myThread (threading.Thread):
+    def __init__(self, threadID, chunk):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.chunk = chunk
 
 
-	n_closest = heapq.nsmallest(5, doc_distance_pairs, key=lambda pair: pair[1])
+    def run(self):
+		outputfile = open('output'+str(self.threadID),'w')
 
-	n_label_indices = [x[0] for x in n_closest]	
-	results = []
-	for i in range(len(n_label_indices)):
-		label_index = n_label_indices[i]
-		labels = [str(int(label)) for label in Y_train[label_index]]
-		results.extend(labels)
-		if len(results) >= 3:
-			break
+		for i in self.chunk:
+			print '\r>> Worker[%d] has finished %d iter %d%%' % (self.threadID, i+1, (100.0 * i/len(X_test))),
+			sys.stdout.flush()
 
-	outputfile.write(str(i+1) +",")
-	if len(results) > 0:
-		outputfile.write(' '.join(results)+"\n")
-	else:
-		outputfile.write("0\n")
-outputfile.close()
+			doc_distance_pairs = []
+			test_doc = X_test[0]
+			
+			# for each train_doc , calculate its distance to test_doc
+			for j in range(len(X_train)):
+				train_doc = X_train[j]
+				dist = calculateDistance(train_doc, test_doc)
+				doc_distance_pairs.append((j, dist))
+
+
+			n_closest = heapq.nsmallest(5, doc_distance_pairs, key=lambda pair: pair[1])
+
+			n_label_indices = [x[0] for x in n_closest]	
+			results = []
+			for j in range(len(n_label_indices)):
+				label_index = n_label_indices[j]
+				labels = [str(int(label)) for label in Y_train[label_index]]
+				results.extend(labels)
+				if len(results) >= 3:
+					break
+			outputfile.write(str(i+1) +",")
+			if len(results) > 0:
+				outputfile.write(' '.join(results)+"\n")
+			else:
+				outputfile.write("0\n")
+		outputfile.close()
+
+print 'start classification with %d  threads ... ' % (numThreads)
+workloads = list(get_chunks(range(len(X_test)), numThreads))
+workers = []
+for i in range(numThreads):
+	worker = myThread(i, workloads[i])
+	workers.append(worker)
+
+for i in range(numThreads):
+	workers[i].start()
+
+for i in range(numThreads):
+	workers[i].join()
+
+merge()
 
 #print 'start preprocessing tranining data ... '
 
