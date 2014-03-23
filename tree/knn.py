@@ -19,17 +19,17 @@ import threading
 # Knn classifier benchmark
 
 print 'reading testing data ... '
-X_test= np.loadtxt("X_test_reduced.txt")
+X_test= np.loadtxt("tmp")
 
 print 'reading training data ... '
-X_train = np.loadtxt("X_train_reduced.txt")
+X_train = np.loadtxt("tmp")
 Y_train = []
 train_label_file = open("train-labels.txt", "rw+")
 
 for labels in train_label_file:
 	Y_train.append(labels.split())
 
-numThreads = 5
+numThreads = 16
 
 def get_chunks(l, n):
     for i in xrange(0, len(l), n):
@@ -58,8 +58,13 @@ class myThread (threading.Thread):
 		outputfile = open('output'+str(self.threadID),'w')
 
 		for i in self.chunk:
-			print '\r>> Worker[%d] has finished %d iter %d%%' % (self.threadID, i+1, (100.0 * i/len(self.chunk))),
-			sys.stdout.flush()
+
+			if len(self.chunk) > 0:
+				percent = 100.0
+				if self.chunk[-1] != self.chunk[0]:
+					percent = (100.0 * (i - self.chunk[0])) / (self.chunk[-1] - self.chunk[0])
+				print '\r>> Worker[%d] has finished %d iter %d%%' % (self.threadID, i+1, percent),
+				sys.stdout.flush()
 
 			doc_distance_pairs = []
 			test_doc = X_test[0]
@@ -89,7 +94,8 @@ class myThread (threading.Thread):
 		outputfile.close()
 
 print 'start classification with %d  threads ... ' % (numThreads)
-workloads = list(get_chunks(range(len(X_test)), numThreads))
+workloads = list(get_chunks(range(len(X_test)), len(X_test)/numThreads))
+#print workloads
 workers = []
 for i in range(numThreads):
 	worker = myThread(i, workloads[i])
