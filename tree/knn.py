@@ -19,10 +19,10 @@ import threading
 # Knn classifier benchmark
 
 print 'reading testing data ... '
-X_test= np.loadtxt("tmp")
+X_test= np.loadtxt("X_test_reduced.txt")
 
 print 'reading training data ... '
-X_train = np.loadtxt("tmp")
+X_train = np.loadtxt("X_train_reduced.txt")
 Y_train = []
 train_label_file = open("train-labels.txt", "rw+")
 
