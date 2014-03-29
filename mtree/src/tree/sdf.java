@@ -1,305 +1,401 @@
 package tree;
 
 
-import java.awt.geom.Point2D;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.math.BigDecimal;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
-import java.util.Scanner;
+import java.util.Map.Entry;
+import java.util.Set;
 
-import com.google.common.primitives.Doubles;
 
 import mtree.DistanceMetric;
 import mtree.MTreeMap;
 import mtree.Result;
 
 
-/**
- * A quick demo to demonstrate the MTreeMap and its usage. (This demo should not be considered a set
- * of tests)
- *
- * @author Jon Parker (jon.i.parker@gmail.com)
- */
+
 public class sdf {
 
-	/** How many points should we put in the data-structure?. */
-	private static int NUM_POINTS = 300;
+	static int num_nearest_neighbors = 20;
+	static int num_row_X_test = 100;
+	static int num_column_X_test = 500;
+	static int num_threads = 3;
+
+
+	static MTreeMap<Double[], String []> mTree = new MTreeMap<Double[], String []>(new PointMetric());
+	static HashMap<String, ArrayList<String>> child_to_parents = new HashMap<String, ArrayList<String>>(); 
+	static HashMap<String, ArrayList<String>> parent_to_children = new HashMap<String, ArrayList<String>>(); 
+
+	static Double[][] X_test;
+
 
 	/** This DistanceMetric computes the distance between to (x,y) points. */
 	static class PointMetric implements DistanceMetric<Double[]> {
 
 		@Override
 		public double distanceBtw(Double[] item1, Double[] item2) {
-		    return	( ( 1- cosine_similarity(item1,item2) ));
-			
+			return	( ( 1- cosine_similarity(item1,item2) ));
+
 		}
 	}
-	
+
 	private static double cosine_similarity(Double[] vec1, Double[] vec2) { 
-        double dp = dot_product(vec1,vec2); 
-        double magnitudeA = find_magnitude(vec1); 
-        double magnitudeB = find_magnitude(vec2); 
-        return (dp)/(magnitudeA*magnitudeB); 
-    } 
+		double dp = dot_product(vec1,vec2); 
+		double magnitudeA = find_magnitude(vec1); 
+		double magnitudeB = find_magnitude(vec2); 
+		return (dp)/(magnitudeA*magnitudeB); 
+	} 
 
-    private static double find_magnitude(Double[] vec) { 
-        double sum_mag=0; 
-        for(int i=0;i<vec.length;i++) 
-        { 
-            sum_mag = sum_mag + vec[i]*vec[i]; 
-        } 
-        return Math.sqrt(sum_mag); 
-    } 
+	private static double find_magnitude(Double[] vec) { 
+		double sum_mag=0; 
+		for(int i=0;i<vec.length;i++) 
+		{ 
+			sum_mag = sum_mag + vec[i]*vec[i]; 
+		} 
+		return Math.sqrt(sum_mag); 
+	} 
 
-    private static double dot_product(Double[] vec1, Double[] vec2) { 
-        double sum=0; 
-        for(int i=0;i<vec1.length;i++) 
-        { 
-            sum = sum + vec1[i]*vec2[i]; 
-        } 
-        return sum; 
-    } 
-	
-	private static Double[][] load() throws FileNotFoundException{
-		Scanner input = new Scanner (new File("X_train_reduced.txt"));
-        int m = 400000;
-        int n = 50;
-        Double [][] a = new Double [m][n];
-            for (int i=0;i<m;i++){
-            	String str = input.nextLine();
-                //System.out.println(i);
-            	String[] strArr = str.split("\\s+");
-            	
-                for (int j=0;j<n;j++){
-                	if(strArr[j].length() == 0) continue;
-                	a[i][j] = Double.parseDouble(strArr[j]);
-                   // a[i][j]= input.nextBigDecimal();
-                }
-            }   
-        
-        //print the input matrix
-        System.out.println("The input sorted matrix is : ");
-        for(int i=0;i<m;i++){
-            for(int j=0;j<n;j++){
-                // System.out.println(a[i][j]);
-            }
-        }
-
-		return a;
-	}
+	private static double dot_product(Double[] vec1, Double[] vec2) { 
+		double sum=0; 
+		for(int i=0;i<vec1.length;i++) 
+		{ 
+			sum = sum + vec1[i]*vec2[i]; 
+		} 
+		return sum; 
+	} 
 
 
-	public static void main(String[] args) throws FileNotFoundException {
-		Double train_matrix [][] = load();
-        
-		MTreeMap<Double[], Integer> mTree = new MTreeMap(new PointMetric());
-        long time = System.currentTimeMillis();
-
-		for (int i = 0; i < 400000; i ++){
-			 if(i % 1000 == 0) {
-				  System.out.println(System.currentTimeMillis()- time);
-				  time = System.currentTimeMillis();
-			 }
-		      mTree.put(train_matrix[i]	, i);
-		}
-		Collection<Result<Double[], Integer>> results = null;
-		System.out.println(System.currentTimeMillis());
-
-		for (int i = 0; i < 100; i ++){
-		       results = mTree.getNClosest(train_matrix[3], 20);
-		}
-		  System.out.println(System.currentTimeMillis());
-
-		for (Result<Double[], Integer> result : results) {
-			System.out.println(
-					"Result " + " :: " + result.value()
-					+ " at distance :: " + result.distance());
-		}
-		
-		/**
-		//draw some random points in the "unit square"
-		Collection<Point2D> points = makePoints();
-
-		//put some data in the tree..
-		loadTree(points, mTree);
-
-		System.out.println("Final Loaded Size :: " + mTree.size());
-
-		//confirm the "mapped data" equals the input 
-		examineEntries(mTree);
-
-		//reload the same data to ensure the prior values get evicted...
-		reloadTree(points, mTree);
-
-		//do some searching...
-		performKNNsearches(mTree);
-		performRangeSearches(mTree);
-
-		//unload the tree (confirm that remove(key) works)
-		unload(points, mTree);
-
-		System.out.println("Final Unloaded Size :: " + mTree.size());
-
-		//show..
-		//(1) how building a tree from an ordered dataset can be bad
-		//(2) how to fix the unbalanced tree when neccessary
-		demonstrateRebalancing();
-		**/
-	}
-
-
-	/**
-	 * Load an MTreeMap with random points. The first point loaded is paired with the Integer value
-	 * 0. The second point loaded is pair with the Integer value 1. And so on..
+	/*
+	 * loading training data and training labels
 	 */
-	private static void loadTree(Collection<Point2D> points, MTreeMap<Point2D, Integer> mTree) {
-		System.out.println("Initial Load....");
-		int counter = 0;
-		for (Point2D point : points) {
-			mTree.put(point, counter);
-			System.out.println("  " + counter + " at " + point.toString());
-			counter++;
-		}
-	}
+	private static void load_trainingData() throws Exception{
+		String line1;
+		String line2;
 
+		BufferedReader data_br = new BufferedReader(new FileReader("X_train_reduced.txt"));
+		BufferedReader label_br = new BufferedReader(new FileReader("X_train_labels.txt"));
 
-	/**
-	 * Look at the entries in the tree, confirm that they match the points that were just placed
-	 * inside.
-	 */
-	private static void examineEntries(MTreeMap<Point2D, Integer> mTree) {
-
-		System.out.println("Examining Entries...");
-
-		for (Map.Entry<Point2D, Integer> entry : mTree.entrySet()) {
-			System.out.println("  entry " + entry.getValue() + " at " + entry.getKey().toString());
-		}
-	}
-
-
-	/**
-	 * Reload the MTreeMap with the same random points. We want the "prior value" printed to go 0,
-	 * 1, 2, ..." This indicates that the proper prior value is being evicted when the same Key is
-	 * reinserted.
-	 */
-	private static void reloadTree(Collection<Point2D> points, MTreeMap<Point2D, Integer> mTree) {
-		int counter = 0;
-		for (Point2D point : points) {
-			int priorValue = mTree.put(point, counter);
-			counter++;
-			System.out.println("prior value was :: " + priorValue);
-		}
-	}
-
-
-	/** Perform some K-Nearest-Neighbor searches. Print the Results. */
-	private static void performKNNsearches(MTreeMap<Point2D, Integer> mTree) {
-
-		Collection<Point2D> points = makePoints();
-
-		int k = 3;
-		for (Point2D point : points) {
-			Collection<Result<Point2D, Integer>> results = mTree.getNClosest(point, k);
-
-			int counter = 0;
-			for (Result<Point2D, Integer> result : results) {
-				System.out.println(
-						"Result " + counter + " :: " + result.value()
-						+ " at distance :: " + result.distance());
-				counter++;
+		System.out.println("loading training data and training labels");
+		while ((line1 = data_br.readLine()) != null) {
+			line2 = label_br.readLine();
+			assert line2 != null;
+			String [] strArr = line1.split("\\s+");
+			assert strArr.length == num_column_X_test;
+			Double [] doubleArr = new Double[strArr.length];
+			for (int i = 0; i < strArr.length; i++) {
+				doubleArr[i] = Double.parseDouble(strArr[i]);
 			}
-			System.out.println("");
+			String [] classLabels = line2.split("\\s+");
+			mTree.put(doubleArr, classLabels);
 		}
+		data_br.close();
+		label_br.close();
 	}
 
+	/*
+	 * loading testing data
+	 */
+	private static void load_testingData() throws Exception{
+		String line1;
 
-	/** Perform some Range Searches. Print the Results. */
-	private static void performRangeSearches(MTreeMap<Point2D, Integer> mTree) {
+		BufferedReader data_br = new BufferedReader(new FileReader("X_test_reduced.txt"));
 
-		Collection<Point2D> points = makePoints();
-
-		double RANGE = 0.05;
-		for (Point2D point : points) {
-			Collection<Result<Point2D, Integer>> results = mTree.getAllWithinRange(point, RANGE);
-
-			int counter = 0;
-			for (Result<Point2D, Integer> result : results) {
-				System.out.println(
-						"Result " + counter + " :: " + result.value()
-						+ " at distance :: " + result.distance());
-				counter++;
+		X_test = new Double[num_row_X_test][num_column_X_test];
+		int i = 0;
+		System.out.println("loading testing data");
+		while ((line1 = data_br.readLine()) != null) {
+			String [] strArr = line1.split("\\s+");
+			for (int j = 0; j < strArr.length; j++) {
+				X_test[i][j] = Double.parseDouble(strArr[j]);
 			}
-			System.out.println("");
+			i++;
 		}
+
+		assert i == num_row_X_test;
+		data_br.close();
 	}
 
+	/*
+	 * loading tree hierarchy
+	 */
+	private static void load_treeHierarchy() throws Exception{
+		String line1;
 
-	private static void unload(Collection<Point2D> points, MTreeMap<Point2D, Integer> mTree) {
+		BufferedReader data_br = new BufferedReader(new FileReader("two_level_hierarchy.txt"));
 
-		int counter = 0;
-		for (Point2D point2D : points) {
-			int value = mTree.remove(point2D);
-			System.out.println("removing point " + counter + " retrieved :: " + value);
-			counter++;
+		System.out.println("loading tree hierarchy");
+		while ((line1 = data_br.readLine()) != null) {
+			String [] strArr = line1.split("\\s+");
+			String parent = strArr[0];
+			String child = strArr[1];
+
+			if (!child_to_parents.containsKey(child)) {
+				child_to_parents.put(child, new ArrayList<String>());
+			}
+			child_to_parents.get(child).add(parent);
+
+			if (!parent_to_children.containsKey(parent)) {
+				parent_to_children.put(parent, new ArrayList<String>());
+			}
+			parent_to_children.get(parent).add(child);
+
 		}
-		System.out.println("");
+		data_br.close();
 	}
 
+	private static List<Map.Entry<String, Double>> sortScoreMap(HashMap<String, Double> unsortMap) {
 
-	private static List<Point2D> makePoints() {
+		List<Map.Entry<String, Double>> list = new LinkedList<Map.Entry<String, Double>>(unsortMap.entrySet());
 
-		Random rng = new Random(17L);
-
-		LinkedList<Point2D> list = new LinkedList<>();
-		for (int i = 0; i < NUM_POINTS; i++) {
-			list.add(new Point2D.Double(rng.nextDouble(), rng.nextDouble()));
-		}
+		// sort list based on comparator
+		Collections.sort(list, new Comparator<Map.Entry<String, Double>>() {
+			@Override
+			public int compare(Entry<String, Double> o1,
+					Entry<String, Double> o2) {
+				return ((Map.Entry<String, Double>) (o1)).getValue()
+						.compareTo(((Map.Entry<String, Double>) (o2)).getValue());
+			}
+		});
 
 		return list;
 	}
 
 
-	private static void demonstrateRebalancing() {
+	static void classify(int workerId, int start_index, int end_index) throws Exception {
 
-		NUM_POINTS = 30000; //rebalancing is more neccessary when the dataset is big..
-		List<Point2D> points = makePoints();
+		System.out.println(String.format("Worker[%d] start classifying in range[%d, %d] ", workerId, start_index, end_index));
+		int one_percent_load = end_index - start_index + 1;
 
-		//sort all input by x-coordinate
-		Collections.sort(points, new Comparator<Point2D>() {
-			@Override
-			public int compare(Point2D t, Point2D t1) {
-				return Doubles.compare(t.getX(), t1.getX());
-			}
-		});
-
-		//build unbalanced MTreeMap...
-		MTreeMap<Point2D, Integer> mTree = new MTreeMap(new PointMetric());
-		
-		int counter = 0;
-		for (Point2D point : points) {
-			mTree.put(point, counter);
-			counter++;
+		File file = new File("output"+workerId);
+		if (!file.exists()) {
+			file.createNewFile();
 		}
 
-		System.out.println("A Big Unbalanced MTree has..");
-		System.out.println(mTree.size() + " entries within");
-		System.out.println(mTree.sphereCount() + " spheres");
+		FileWriter fw = new FileWriter(file.getAbsoluteFile());
+		BufferedWriter bw = new BufferedWriter(fw);
 
-		mTree.rebalance();
+		Collection<Result<Double[], String[]>> results;
 
-		System.out.println("A Big Balanced MTree has..");
-		System.out.println(mTree.size() + " entries within ");
-		System.out.println(mTree.sphereCount() + " spheres");
+		for (int i = start_index; i <= end_index; i++) {
 
-		System.out.println(
-				"\nNote how the number of spheres drops even though the number "
-				+ "of entries remains the same ");
+			if ((i-start_index + 1) % one_percent_load == 0) {
+				System.out.println(String.format("Worker[%d]  %d", workerId, (i-start_index+1)/ one_percent_load -1) +"% done");
+			}
+
+			results = mTree.getNClosest(X_test[i], num_nearest_neighbors);
+
+			// get all labels in results and give them a score of Double.MAX_VALUE
+			HashMap<String, ArrayList<Double>> label_to_dists = new HashMap<String, ArrayList<Double>>();
+
+
+			HashMap<String, Double> label_to_score = new HashMap<String, Double>();
+			for (Result<Double[], String[]> result : results) {
+				for (String label : result.value()) {
+					if (!label_to_dists.containsKey(label)) {
+						label_to_dists.put(label, new ArrayList<Double>());
+					}
+					label_to_dists.get(label).add(result.distance());
+					label_to_score.put(label, Double.MAX_VALUE);
+				}
+			}
+
+			// calculating scores
+
+			for (String label : label_to_score.keySet()) {
+				double minimum_distance_knn = 2.0;
+				double average_distance_knn_in_tree = 0;
+
+
+
+				int num_nodes = 0;
+
+				Set<String> visited = new HashSet<String>();
+				for (String myParent : child_to_parents.get(label)) {
+					for (String myPeer : parent_to_children.get(myParent)) {
+						if (label_to_dists.containsKey(myPeer) && visited.contains(myPeer) == false) {
+							num_nodes += 1;
+							visited.add(myPeer);
+							double total_distance = 0.0;
+
+							ArrayList<Double> dists = label_to_dists.get(myPeer);
+							for (Double dist : dists) {
+								total_distance += dist;
+							}
+
+							average_distance_knn_in_tree += total_distance/dists.size();
+						}
+					}
+				}
+
+				if (label_to_dists.containsKey(label)) {
+					for (Double dist : label_to_dists.get(label)) {
+						if (dist < minimum_distance_knn) {
+							minimum_distance_knn = dist;
+						}
+					}
+					average_distance_knn_in_tree = average_distance_knn_in_tree / num_nodes;
+				} else {
+					average_distance_knn_in_tree = 2.0;
+				}
+
+				double theta0 = 0.7;
+				double theta1 = 0.3;
+				double score = minimum_distance_knn * theta0 + average_distance_knn_in_tree * theta1;
+				label_to_score.put(label, score);
+			}
+
+
+
+			// get the labels with the smallest scores
+			List<Map.Entry<String, Double>> sortedList = sortScoreMap(label_to_score);
+			double alpha = 1.02;
+			double max_num_labels_per_line = 5;
+
+			ArrayList<String> classified_labels = new ArrayList<String>();
+			Map.Entry<String, Double> firstEle = sortedList.get(0);
+			for (int j = 0; j < sortedList.size(); j++) {
+				Map.Entry<String, Double> currEle = sortedList.get(j);
+
+				if (currEle.getValue() > firstEle.getValue() * alpha || classified_labels.size() > max_num_labels_per_line) {
+					break;
+				}
+				classified_labels.add(currEle.getKey());
+			}
+
+			for (int z = 0; z <  classified_labels.size(); z++) {
+				if (classified_labels.size() == 1) {
+					bw.write(classified_labels.get(z)+"\n");
+				} else {
+					if (z != classified_labels.size() - 1) {
+						bw.write(classified_labels.get(z)+" ");
+					} else {
+						bw.write(classified_labels.get(z)+"\n");
+					}
+				}
+			}
+
+		}
+
+		System.out.println(String.format("Worker[%d]", workerId) +" 100% done");
+
+		bw.close();
+	}
+
+
+	static class ClassifierWorker extends Thread {
+
+		int workerId = 0;
+		Range range = null;
+
+		public ClassifierWorker(int workerIdIn, Range rangeIn) {
+			workerId = workerIdIn;
+			range = rangeIn;
+		}
+
+		public void run() {
+			try {
+				classify(workerId, range.start, range.end);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	static class Range {
+		private int start;
+		private int end;
+
+		public Range(int startIn, int endIn) {
+			this.start = startIn;
+			this.end = endIn;
+		}
+	}
+
+	private static ArrayList<Range> getChunks(int end, int n_chunks) {
+		int chunk_size = (end+1) / n_chunks;
+
+		ArrayList<Range> retVal = new ArrayList<Range>();
+
+		int i = 0;
+		while (i < end) {
+			retVal.add(new Range(i, Math.min(i + chunk_size -1, end)));
+			i += chunk_size;
+		}
+
+		Range last = retVal.get(retVal.size() - 1);
+		last.end = end;
+
+		return retVal;
+	}
+
+
+
+	public static void merge() throws Exception {
+		System.out.println("merging output files");
+		File file = new File("output");
+
+
+		// if file doesnt exists, then create it
+		if (!file.exists()) {
+			file.createNewFile();
+		}
+
+		FileWriter fw = new FileWriter(file.getAbsoluteFile());
+		BufferedWriter bw = new BufferedWriter(fw);
+
+		bw.write("Id,Predicated \n");
+		int count = 1;
+		for (int i = 0; i < num_threads; i++) {
+			BufferedReader br = new BufferedReader(new FileReader("output"+i));
+			String line1;
+			while ((line1 = br.readLine()) != null) {
+				bw.write(""+(count++)+","+line1+"\n");
+			}
+			br.close();
+		}
+		bw.close();
+
+		System.out.println("Done");		
+	}
+
+	public static void main(String[] args) throws Exception {
+
+		if (args.length == 1){
+			num_threads = Integer.parseInt(args[0]);
+		}
+
+		load_trainingData();
+		load_testingData();
+		load_treeHierarchy();
+
+
+		ArrayList<Range> ranges = getChunks(num_row_X_test-1, num_threads);
+		ArrayList<ClassifierWorker> workers = new ArrayList<ClassifierWorker>();
+
+		for (int i = 0; i < num_threads; i++) {
+			workers.add(new ClassifierWorker(i, ranges.get(i)));
+		}
+
+		for (int i = 0; i < num_threads; i++) {
+			workers.get(i).start();
+		}
+
+		for (int i = 0; i < num_threads; i++) {
+			workers.get(i).join();
+		}
+
+		merge();
+
 	}
 }
