@@ -28,9 +28,9 @@ import mtree.Result;
 public class sdf {
 
 	static int num_nearest_neighbors = 20;
-	static int num_row_X_test = 100;
+	static int num_row_X_test = 452167;
 	static int num_column_X_test = 500;
-	static int num_threads = 3;
+	static int num_threads = 8;
 
 
 	static MTreeMap<Double[], String []> mTree = new MTreeMap<Double[], String []>(new PointMetric());
@@ -259,7 +259,7 @@ public class sdf {
 
 			// get the labels with the smallest scores
 			List<Map.Entry<String, Double>> sortedList = sortScoreMap(label_to_score);
-			double alpha = 1.02;
+			double alpha = 1.05;
 			double max_num_labels_per_line = 5;
 
 			ArrayList<String> classified_labels = new ArrayList<String>();
