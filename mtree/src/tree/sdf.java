@@ -85,19 +85,21 @@ public class sdf {
 
 		BufferedReader data_br = new BufferedReader(new FileReader("X_train_reduced.txt"));
 		BufferedReader label_br = new BufferedReader(new FileReader("X_train_labels.txt"));
-
+                int counter  = 0;
 		System.out.println("loading training data and training labels");
 		while ((line1 = data_br.readLine()) != null) {
+                        if(counter %(20000) == 0){
+      				System.out.println(counter / (20000));
+                        }
+                        counter ++;
 			line2 = label_br.readLine();
-			assert line2 != null;
 			String [] strArr = line1.split("\\s+");
-			assert strArr.length == num_column_X_test;
 			Double [] doubleArr = new Double[strArr.length];
 			for (int i = 0; i < strArr.length; i++) {
 				doubleArr[i] = Double.parseDouble(strArr[i]);
 			}
-			String [] classLabels = line2.split("\\s+");
-			mTree.put(doubleArr, classLabels);
+			// String [] classLabels = line2.split("\\s+");
+			mTree.put(doubleArr, line2.split("\\s+"));
 		}
 		data_br.close();
 		label_br.close();
