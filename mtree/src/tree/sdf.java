@@ -33,31 +33,31 @@ public class sdf {
 	static int num_threads = 8;
 
 
-	static MTreeMap<Double[], String []> mTree = new MTreeMap<Double[], String []>(new PointMetric());
+	static MTreeMap<double[], String []> mTree = new MTreeMap<double[], String []>(new PointMetric());
 	static HashMap<String, ArrayList<String>> child_to_parents = new HashMap<String, ArrayList<String>>(); 
 	static HashMap<String, ArrayList<String>> parent_to_children = new HashMap<String, ArrayList<String>>(); 
 
-	static Double[][] X_test;
+	static double[][] X_test;
 
 
 	/** This DistanceMetric computes the distance between to (x,y) points. */
-	static class PointMetric implements DistanceMetric<Double[]> {
+	static class PointMetric implements DistanceMetric<double[]> {
 
 		@Override
-		public double distanceBtw(Double[] item1, Double[] item2) {
+		public double distanceBtw(double[] item1, double[] item2) {
 			return	( ( 1- cosine_similarity(item1,item2) ));
 
 		}
 	}
 
-	private static double cosine_similarity(Double[] vec1, Double[] vec2) { 
+	private static double cosine_similarity(double[] vec1, double[] vec2) { 
 		double dp = dot_product(vec1,vec2); 
 		double magnitudeA = find_magnitude(vec1); 
 		double magnitudeB = find_magnitude(vec2); 
 		return (dp)/(magnitudeA*magnitudeB); 
 	} 
 
-	private static double find_magnitude(Double[] vec) { 
+	private static double find_magnitude(double[] vec) { 
 		double sum_mag=0; 
 		for(int i=0;i<vec.length;i++) 
 		{ 
@@ -66,7 +66,7 @@ public class sdf {
 		return Math.sqrt(sum_mag); 
 	} 
 
-	private static double dot_product(Double[] vec1, Double[] vec2) { 
+	private static double dot_product(double[] vec1, double[] vec2) { 
 		double sum=0; 
 		for(int i=0;i<vec1.length;i++) 
 		{ 
@@ -85,21 +85,19 @@ public class sdf {
 
 		BufferedReader data_br = new BufferedReader(new FileReader("X_train_reduced.txt"));
 		BufferedReader label_br = new BufferedReader(new FileReader("X_train_labels.txt"));
-                int counter  = 0;
+
 		System.out.println("loading training data and training labels");
 		while ((line1 = data_br.readLine()) != null) {
-                        if(counter %(20000) == 0){
-      				System.out.println(counter / (20000));
-                        }
-                        counter ++;
 			line2 = label_br.readLine();
+			assert line2 != null;
 			String [] strArr = line1.split("\\s+");
-			Double [] doubleArr = new Double[strArr.length];
+			assert strArr.length == num_column_X_test;
+			double [] doubleArr = new double[strArr.length];
 			for (int i = 0; i < strArr.length; i++) {
 				doubleArr[i] = Double.parseDouble(strArr[i]);
 			}
-			// String [] classLabels = line2.split("\\s+");
-			mTree.put(doubleArr, line2.split("\\s+"));
+			String [] classLabels = line2.split("\\s+");
+			mTree.put(doubleArr, classLabels);
 		}
 		data_br.close();
 		label_br.close();
@@ -113,7 +111,7 @@ public class sdf {
 
 		BufferedReader data_br = new BufferedReader(new FileReader("X_test_reduced.txt"));
 
-		X_test = new Double[num_row_X_test][num_column_X_test];
+		X_test = new double[num_row_X_test][num_column_X_test];
 		int i = 0;
 		System.out.println("loading testing data");
 		while ((line1 = data_br.readLine()) != null) {
@@ -177,7 +175,7 @@ public class sdf {
 	static void classify(int workerId, int start_index, int end_index) throws Exception {
 
 		System.out.println(String.format("Worker[%d] start classifying in range[%d, %d] ", workerId, start_index, end_index));
-		int one_percent_load = end_index - start_index + 1;
+		int one_percent_load = (end_index - start_index + 1) / 100;
 
 		File file = new File("output"+workerId);
 		if (!file.exists()) {
@@ -187,12 +185,12 @@ public class sdf {
 		FileWriter fw = new FileWriter(file.getAbsoluteFile());
 		BufferedWriter bw = new BufferedWriter(fw);
 
-		Collection<Result<Double[], String[]>> results;
+		Collection<Result<double[], String[]>> results;
 
 		for (int i = start_index; i <= end_index; i++) {
 
 			if ((i-start_index + 1) % one_percent_load == 0) {
-				System.out.println(String.format("Worker[%d]  %d", workerId, (i-start_index+1)/ one_percent_load -1) +"% done");
+				System.out.println(String.format("Worker[%d]  %d", workerId, (i-start_index+1)/ one_percent_load) +"% done");
 			}
 
 			results = mTree.getNClosest(X_test[i], num_nearest_neighbors);
@@ -202,7 +200,7 @@ public class sdf {
 
 
 			HashMap<String, Double> label_to_score = new HashMap<String, Double>();
-			for (Result<Double[], String[]> result : results) {
+			for (Result<double[], String[]> result : results) {
 				for (String label : result.value()) {
 					if (!label_to_dists.containsKey(label)) {
 						label_to_dists.put(label, new ArrayList<Double>());
