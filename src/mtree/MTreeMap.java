@@ -300,7 +300,7 @@ public class MTreeMap<K, V> implements Serializable {
 	 */
 	class Sphere implements Serializable {
 
-		private static final int MAX_SIZE = 2000;
+		private static final int MAX_SIZE = 10000;
 
 		final K centerPoint;
 

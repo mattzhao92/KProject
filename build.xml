@@ -49,7 +49,12 @@
         <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
         <antcall target="build"/>
     </target>
-    <target name="run">
+    <target name="BruteForce">
+        <java classname="tree.BruteForce" failonerror="true" fork="yes">
+            <classpath refid="kaggle.classpath"/>
+        </java>
+    </target>
+    <target name="Main (3)">
         <java classname="tree.Main" failonerror="true" fork="yes">
             <classpath refid="kaggle.classpath"/>
         </java>
