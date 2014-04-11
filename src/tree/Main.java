@@ -132,8 +132,6 @@ public class Main {
 	}
 
 
-
-
 	public void loadMTree(boolean useSerializedData) throws Exception{
 
 		BufferedReader input_file= new BufferedReader(new FileReader("test-remapped.csv"));
@@ -173,12 +171,13 @@ public class Main {
 	//	static int num_test_docs  =  452167 ;
 	//	static int num_train_docs = 2365436;
 
-	static int num_test_docs  =  452167;
+	static int num_test_docs  =  50;
 	static int num_train_docs = 2365436;
 
 	public static void main(String[] args) throws Exception {
 		Main main = new Main();
 
+		long time = System.currentTimeMillis();
 		main.loadMTree(false);
 
 		ConcurrentHashMap<Integer, ArrayList<Integer>> result = new ConcurrentHashMap<Integer, ArrayList<Integer>>();
@@ -217,5 +216,8 @@ public class Main {
 			bw.newLine();
 		}
 		bw.close();
+		
+		System.out.println("total time "+ (System.currentTimeMillis() - time));
+
 	}
 }
